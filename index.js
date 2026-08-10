@@ -4,6 +4,8 @@ const {
   EmbedBuilder
 } = require("discord.js");
 
+const http = require("http");
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -13,6 +15,16 @@ const client = new Client({
   ]
 });
 
+// Serwer dla Rendera
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("Titan Market Bot działa!");
+});
+
+server.listen(process.env.PORT || 10000, () => {
+  console.log("Serwer HTTP działa.");
+});
+
 client.once("ready", () => {
   console.log(`Titan Market Bot online jako ${client.user.tag}`);
 });
@@ -20,12 +32,10 @@ client.once("ready", () => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  // !ping
   if (message.content === "!ping") {
     message.reply("🏓 Pong! Titan Market Bot działa!");
   }
 
-  // !ogloszenie TEKST
   if (message.content.startsWith("!ogloszenie ")) {
     const tekst = message.content.slice(12);
 
