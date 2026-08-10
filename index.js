@@ -1,91 +1,44 @@
 const {
   Client,
   GatewayIntentBits,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
+  ChannelType,
   PermissionsBitField,
-  ChannelType
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  EmbedBuilder
 } = require("discord.js");
-
-const http = require("http");
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMessages
   ]
 });
 
-// Serwer dla Render
-const server = http.createServer((req, res) => {
-  res.writeHead(200);
-  res.end("Titan Market Bot działa!");
-});
-
-server.listen(process.env.PORT || 10000, () => {
-  console.log("Serwer HTTP działa.");
-});
-
 client.once("ready", () => {
-  console.log(`Titan Market Bot online jako ${client.user.tag}`);
+  console.log(`Bot ${client.user.tag} jest online!`);
 });
 
-// !ping
-// !ogloszenie TEKST
-client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
+client.on("interactionCreate", async interaction => {
+  if (!interaction.isStringSelectMenu()) return;
 
-  if (message.content === "!ping") {
-    message.reply("🏓 Pong! Titan Market Bot działa!");
-  }
+  if (interaction.customId === "ticket_category") {
+    const category = interaction.values[0];
 
-  if (message.content.startsWith("!ogloszenie ")) {
-    const tekst = message.content.slice(12);
+    const names = {
+      zakup: "🛒・zakup-titan-holo",
+      nagroda: "🎁・nagroda",
+      pomoc: "🛠️・pomoc",
+      wspolpraca: "🤝・wspolpraca"
+    };
 
-    const embed = new EmbedBuilder()
-      .setTitle("📢 TITAN MARKET")
-      .setDescription(tekst)
-      .setFooter({ text: "Titan Market • Oficjalne ogłoszenie" })
-      .setTimestamp();
+    const channelName = names[category];
 
-    await message.channel.send({ embeds: [embed] });
-  }
-
-  // !ticket
-  if (message.content === "!ticket") {
-    const embed = new EmbedBuilder()
-      .setTitle("🎫 TITAN MARKET — TICKET")
-      .setDescription(
-        "Potrzebujesz pomocy?\n\n" +
-        "Kliknij przycisk poniżej, aby utworzyć prywatny ticket."
-      )
-      .setFooter({ text: "Titan Market" });
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("create_ticket")
-        .setLabel("🎫 Otwórz ticket")
-        .setStyle(ButtonStyle.Primary)
-    );
-
-    await message.channel.send({
-      embeds: [embed],
-      components: [row]
-    });
-  }
-});
-
-// Obsługa przycisków
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isButton()) return;
-
-  if (interaction.customId === "create_ticket") {
     const existing = interaction.guild.channels.cache.find(
-      channel => channel.name === `ticket-${interaction.user.id}`
+      ch =>
+        ch.name === channelName &&
+        ch.type === ChannelType.GuildText &&
+        ch.topic === `ticket-${interaction.user.id}`
     );
 
     if (existing) {
@@ -96,8 +49,9 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     const channel = await interaction.guild.channels.create({
-      name: `ticket-${interaction.user.id}`,
+      name: channelName,
       type: ChannelType.GuildText,
+      topic: `ticket-${interaction.user.id}`,
       permissionOverwrites: [
         {
           id: interaction.guild.id,
@@ -115,24 +69,16 @@ client.on("interactionCreate", async (interaction) => {
     });
 
     const embed = new EmbedBuilder()
-      .setTitle("🎫 TICKET — TITAN MARKET")
+      .setTitle("🎫 Titan Market")
       .setDescription(
         `Witaj ${interaction.user}!\n\n` +
-        "Opisz tutaj, czego potrzebujesz. Administracja odpowie tak szybko, jak będzie mogła."
-      )
-      .setTimestamp();
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("close_ticket")
-        .setLabel("🔒 Zamknij ticket")
-        .setStyle(ButtonStyle.Danger)
-    );
+        `Wybrałeś kategorię: **${channelName}**\n\n` +
+        `Opisz tutaj, w czym możemy Ci pomóc.`
+      );
 
     await channel.send({
       content: `${interaction.user}`,
-      embeds: [embed],
-      components: [row]
+      embeds: [embed]
     });
 
     await interaction.reply({
@@ -140,30 +86,59 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: true
     });
   }
-
-  if (interaction.customId === "close_ticket") {
-    await interaction.reply("🔒 Ticket zostanie zamknięty za 3 sekundy...");
-
-    setTimeout(() => {
-      interaction.channel.delete().catch(() => {});
-    }, 3000);
-  }
 });
 
-client.on("guildMemberAdd", async (member) => {
-  const channelId = process.env.WELCOME_CHANNEL_ID;
+client.on("messageCreate", async message => {
+  if (message.author.bot) return;
 
-  if (!channelId) return;
+  if (message.content === "!ticket") {
+    const embed = new EmbedBuilder()
+      .setTitle("🎫 TITAN MARKET")
+      .setDescription(
+        "Wybierz kategorię ticketu z menu poniżej.\n\n" +
+        "🛒 **Zakup Titan Holo**\n" +
+        "🎁 **Nagroda**\n" +
+        "🛠️ **Pomoc**\n" +
+        "🤝 **Współpraca**"
+      );
 
-  const channel = member.guild.channels.cache.get(channelId);
+    const menu = new StringSelectMenuBuilder()
+      .setCustomId("ticket_category")
+      .setPlaceholder("🎫 Wybierz kategorię ticketu")
+      .addOptions([
+        {
+          label: "Zakup Titan Holo",
+          description: "Chcesz kupić Titan Holo",
+          value: "zakup",
+          emoji: "🛒"
+        },
+        {
+          label: "Nagroda",
+          description: "Sprawa dotycząca nagrody",
+          value: "nagroda",
+          emoji: "🎁"
+        },
+        {
+          label: "Pomoc",
+          description: "Potrzebujesz pomocy",
+          value: "pomoc",
+          emoji: "🛠️"
+        },
+        {
+          label: "Współpraca",
+          description: "Chcesz nawiązać współpracę",
+          value: "wspolpraca",
+          emoji: "🤝"
+        }
+      ]);
 
-  if (!channel) return;
+    const row = new ActionRowBuilder().addComponents(menu);
 
-  channel.send(
-    `👋 Witaj ${member} na **Titan Market**!\n\n` +
-    `💎 Titany od 1 zł\n` +
-    `🎫 Potrzebujesz pomocy? Utwórz ticket.`
-  );
+    await message.channel.send({
+      embeds: [embed],
+      components: [row]
+    });
+  }
 });
 
 client.login(process.env.TOKEN);
