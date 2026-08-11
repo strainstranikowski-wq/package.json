@@ -23,7 +23,7 @@ client.once("ready", () => {
 });
 
 // =========================
-// !PING + !TICKET
+// KOMENDY
 // =========================
 
 client.on("messageCreate", async (message) => {
@@ -33,77 +33,77 @@ client.on("messageCreate", async (message) => {
     return message.reply("🏓 Pong!");
   }
 
-  if (message.content === "!ticket") {
+  if (message.content !== "!ticket") return;
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎫 TITAN MARKET")
-      .setDescription(
-        "# WYBIERZ KATEGORIĘ TICKETU\n\n" +
-        "🛒 **Zakup Titan Holo**\n" +
-        "🎁 **Nagroda**\n" +
-        "🛠️ **Pomoc**\n" +
-        "🤝 **Współpraca**"
-      );
+  // =========================
+  // MENU METOD PŁATNOŚCI
+  // =========================
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId("ticket_category")
-      .setPlaceholder("🎫 Wybierz kategorię")
-      .addOptions([
-        {
-          label: "Zakup Titan Holo",
-          value: "zakup",
-          emoji: {
-            id: "1536522515092873319",
-            name: "TitanHolo"
-          }
-        },
-        {
-          label: "Nagroda",
-          value: "nagroda",
-          emoji: "🎁"
-        },
-        {
-          label: "Pomoc",
-          value: "pomoc",
-          emoji: "🛠️"
-        },
-        {
-          label: "Współpraca",
-          value: "wspolpraca",
-          emoji: "🤝"
+  const paymentEmbed = new EmbedBuilder()
+    .setTitle("💳 METODY PŁATNOŚCI")
+    .setDescription(
+      "Wybierz metodę płatności poniżej."
+    );
+
+  const paymentMenu = new StringSelectMenuBuilder()
+    .setCustomId("payment_method")
+    .setPlaceholder("💳 METODY PŁATNOŚCI")
+    .addOptions([
+      {
+        label: "BLIK — 0% PROWIZJI",
+        value: "blik",
+        emoji: {
+          id: "1536522618348380331",
+          name: "Blik"
         }
-      ]);
+      },
+      {
+        label: "PSC — 15% PROWIZJI",
+        value: "psc",
+        emoji: {
+          id: "1536522696542781450",
+          name: "Psc"
+        }
+      },
+      {
+        label: "MYPSC — 25% PROWIZJI",
+        value: "mypsc",
+        emoji: {
+          id: "1536522757595078727",
+          name: "Mypsc"
+        }
+      }
+    ]);
 
-    const row = new ActionRowBuilder().addComponents(menu);
+  const row = new ActionRowBuilder()
+    .addComponents(paymentMenu);
 
-    return message.channel.send({
-      embeds: [embed],
-      components: [row]
-    });
-  }
+  await message.channel.send({
+    embeds: [paymentEmbed],
+    components: [row]
+  });
 });
 
 // =========================
-// TWORZENIE TICKETU
+// INTERAKCJE
 // =========================
 
 client.on("interactionCreate", async (interaction) => {
 
-  // =========================
-  // KATEGORIA TICKETU
-  // =========================
+  if (
+    interaction.isStringSelectMenu() &&
+    interaction.customId === "payment_method"
+  ) {
 
-  if (interaction.isStringSelectMenu()) {
-
-    if (interaction.customId !== "ticket_category") return;
+    const method = interaction.values[0];
 
     const names = {
-      zakup: "🛒・zakup-titan-holo",
-      nagroda: "🎁・nagroda",
-      pomoc: "🛠️・pomoc",
-      wspolpraca: "🤝・wspolpraca"
+      blik: "💳・zakup-blik",
+      psc: "💳・zakup-psc",
+      mypsc: "💳・zakup-mypsc"
     };
 
+    // Sprawdzenie istniejącego ticketu
     const existing = interaction.guild.channels.cache.find(
       channel => channel.topic === `ticket-${interaction.user.id}`
     );
@@ -115,8 +115,12 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
+    // =========================
+    // TWORZENIE TICKETU
+    // =========================
+
     const channel = await interaction.guild.channels.create({
-      name: names[interaction.values[0]],
+      name: names[method],
       type: ChannelType.GuildText,
       topic: `ticket-${interaction.user.id}`,
       permissionOverwrites: [
@@ -137,46 +141,9 @@ client.on("interactionCreate", async (interaction) => {
       ]
     });
 
-    let description;
-
-    if (interaction.values[0] === "zakup") {
-
-      description =
-        "# <:TitanHolo:1536522515092873319> ZAKUP TITAN HOLO\n\n" +
-
-        "## 💳 METODY PŁATNOŚCI\n\n" +
-
-        "# <:Blik:1536522618348380331> BLIK\n" +
-        "### 0% PROWIZJI\n\n" +
-
-        "# <:Psc:1536522696542781450> PSC\n" +
-        "### 15% PROWIZJI\n\n" +
-
-        "# <:Mypsc:1536522757595078727> MYPSC\n" +
-        "### 25% PROWIZJI";
-
-    } else if (interaction.values[0] === "nagroda") {
-
-      description =
-        "# 🎁 NAGRODA\n\n" +
-        "Opisz tutaj, jaką nagrodę chcesz odebrać.";
-
-    } else if (interaction.values[0] === "pomoc") {
-
-      description =
-        "# 🛠️ POMOC\n\n" +
-        "Opisz tutaj, w czym potrzebujesz pomocy.";
-
-    } else {
-
-      description =
-        "# 🤝 WSPÓŁPRACA\n\n" +
-        "Opisz tutaj swoją propozycję współpracy.";
-    }
-
-    const ticketEmbed = new EmbedBuilder()
-      .setTitle("🎫 TITAN MARKET")
-      .setDescription(description);
+    // =========================
+    // ZAMKNIĘCIE TICKETU
+    // =========================
 
     const closeButton = new ButtonBuilder()
       .setCustomId("close_ticket")
@@ -184,13 +151,44 @@ client.on("interactionCreate", async (interaction) => {
       .setEmoji("🔒")
       .setStyle(ButtonStyle.Danger);
 
-    const buttonRow = new ActionRowBuilder()
+    const closeRow = new ActionRowBuilder()
       .addComponents(closeButton);
+
+    // =========================
+    // INFORMACJA O PŁATNOŚCI
+    // =========================
+
+    let paymentText = "";
+
+    if (method === "blik") {
+      paymentText =
+        "<:Blik:1536522618348380331> **BLIK**\n\n" +
+        "💰 **0% PROWIZJI**";
+    }
+
+    if (method === "psc") {
+      paymentText =
+        "<:Psc:1536522696542781450> **PSC**\n\n" +
+        "💰 **15% PROWIZJI**";
+    }
+
+    if (method === "mypsc") {
+      paymentText =
+        "<:Mypsc:1536522757592878727> **MYPSC**\n\n" +
+        "💰 **25% PROWIZJI**";
+    }
+
+    const ticketEmbed = new EmbedBuilder()
+      .setTitle("🎫 TITAN MARKET")
+      .setDescription(
+        "# 💳 WYBRANA METODA PŁATNOŚCI\n\n" +
+        paymentText
+      );
 
     await channel.send({
       content: `${interaction.user}`,
       embeds: [ticketEmbed],
-      components: [buttonRow]
+      components: [closeRow]
     });
 
     await interaction.reply({
@@ -202,31 +200,30 @@ client.on("interactionCreate", async (interaction) => {
   }
 
   // =========================
-  // ZAMYKANIE TICKETU
+  // ZAMKNIĘCIE TICKETU
   // =========================
 
-  if (interaction.isButton()) {
-
-    if (interaction.customId !== "close_ticket") return;
+  if (
+    interaction.isButton() &&
+    interaction.customId === "close_ticket"
+  ) {
 
     await interaction.reply({
       content: "🔒 Ticket zostanie zamknięty za 3 sekundy..."
     });
 
     setTimeout(async () => {
-
       try {
         await interaction.channel.delete();
       } catch (error) {
-        console.log("Nie udało się usunąć ticketu:", error);
+        console.log("❌ Nie udało się usunąć ticketu:", error);
       }
-
     }, 3000);
   }
 });
 
 // =========================
-// URUCHOMIENIE BOTA
+// URUCHOMIENIE
 // =========================
 
 client.login(process.env.TOKEN);
