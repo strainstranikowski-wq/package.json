@@ -1,15 +1,11 @@
 const { Client, GatewayIntentBits } = require("discord.js");
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+  intents: [GatewayIntentBits.Guilds]
 });
 
 client.once("ready", () => {
-  console.log(`Bot zalogowany jako ${client.user.tag}`);
+  console.log(`✅ ${client.user.tag} jest aktywny!`);
 });
 
 client.login(process.env.TOKEN);
