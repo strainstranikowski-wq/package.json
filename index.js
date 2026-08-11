@@ -20,9 +20,16 @@ client.once("ready", () => {
   console.log(`✅ Titan Market Bot online jako ${client.user.tag}`);
 });
 
+// !PING
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
+  if (message.content === "!ping") {
+    await message.reply("🏓 Pong!");
+    return;
+  }
+
+  // !TICKET
   if (message.content === "!ticket") {
     const embed = new EmbedBuilder()
       .setTitle("🎫 TITAN MARKET")
@@ -72,6 +79,7 @@ client.on("messageCreate", async (message) => {
   }
 });
 
+// TICKETY
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isStringSelectMenu()) return;
   if (interaction.customId !== "ticket_category") return;
@@ -145,4 +153,5 @@ client.on("interactionCreate", async (interaction) => {
   });
 });
 
+// URUCHOMIENIE BOTA
 client.login(process.env.TOKEN);
