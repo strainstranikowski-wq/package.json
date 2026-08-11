@@ -18,31 +18,39 @@ const client = new Client({
   ]
 });
 
+// =========================
+// AKTYWACJA BOTA
+// =========================
+
 client.once("ready", () => {
-  console.log(`✅ Titan Market Bot online jako ${client.user.tag}`);
+  console.log(`🤖 Titan Market Bot aktywny jako ${client.user.tag}`);
 });
 
 // =========================
-// KOMENDY
+// !PING + !TICKET
 // =========================
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
+  // !PING
   if (message.content === "!ping") {
-    return message.reply("🏓 Pong!");
+    return message.reply("🏓 Pong! Bot działa!");
   }
 
+  // !TICKET
   if (message.content !== "!ticket") return;
 
   // =========================
   // MENU METOD PŁATNOŚCI
   // =========================
 
-  const paymentEmbed = new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setTitle("💳 METODY PŁATNOŚCI")
     .setDescription(
-      "Wybierz metodę płatności poniżej."
+      "## <:Blik:1536522618348380331> BLIK — 0% PROWIZJI\n\n" +
+      "## <:Psc:1536522696542781450> PSC — 15% PROWIZJI\n\n" +
+      "## <:Mypsc:1536522757595078727> MYPSC — 25% PROWIZJI"
     );
 
   const paymentMenu = new StringSelectMenuBuilder()
@@ -69,7 +77,7 @@ client.on("messageCreate", async (message) => {
         label: "MYPSC — 25% PROWIZJI",
         value: "mypsc",
         emoji: {
-          id: "1536522757595078727",
+          id: "1536522757592878727",
           name: "Mypsc"
         }
       }
@@ -79,7 +87,7 @@ client.on("messageCreate", async (message) => {
     .addComponents(paymentMenu);
 
   await message.channel.send({
-    embeds: [paymentEmbed],
+    embeds: [embed],
     components: [row]
   });
 });
@@ -89,6 +97,10 @@ client.on("messageCreate", async (message) => {
 // =========================
 
 client.on("interactionCreate", async (interaction) => {
+
+  // =========================
+  // WYBÓR PŁATNOŚCI
+  // =========================
 
   if (
     interaction.isStringSelectMenu() &&
@@ -123,6 +135,7 @@ client.on("interactionCreate", async (interaction) => {
       name: names[method],
       type: ChannelType.GuildText,
       topic: `ticket-${interaction.user.id}`,
+
       permissionOverwrites: [
         {
           id: interaction.guild.id,
@@ -142,7 +155,7 @@ client.on("interactionCreate", async (interaction) => {
     });
 
     // =========================
-    // ZAMKNIĘCIE TICKETU
+    // PRZYCISK ZAMKNIĘCIA
     // =========================
 
     const closeButton = new ButtonBuilder()
@@ -155,35 +168,41 @@ client.on("interactionCreate", async (interaction) => {
       .addComponents(closeButton);
 
     // =========================
-    // INFORMACJA O PŁATNOŚCI
+    // WYBRANA METODA
     // =========================
 
     let paymentText = "";
 
     if (method === "blik") {
       paymentText =
-        "<:Blik:1536522618348380331> **BLIK**\n\n" +
+        "<:Blik:1536522618348380331> **BLIK**\n" +
         "💰 **0% PROWIZJI**";
     }
 
     if (method === "psc") {
       paymentText =
-        "<:Psc:1536522696542781450> **PSC**\n\n" +
+        "<:Psc:1536522696542781450> **PSC**\n" +
         "💰 **15% PROWIZJI**";
     }
 
     if (method === "mypsc") {
       paymentText =
-        "<:Mypsc:1536522757592878727> **MYPSC**\n\n" +
+        "<:Mypsc:1536522757595078727> **MYPSC**\n" +
         "💰 **25% PROWIZJI**";
     }
 
     const ticketEmbed = new EmbedBuilder()
       .setTitle("🎫 TITAN MARKET")
       .setDescription(
-        "# 💳 WYBRANA METODA PŁATNOŚCI\n\n" +
-        paymentText
+        "# 💳 ZAKUP TITAN HOLO\n\n" +
+        paymentText +
+        "\n\n" +
+        "Napisz poniżej, czego potrzebujesz."
       );
+
+    // =========================
+    // WIADOMOŚĆ W TICKIECIE
+    // =========================
 
     await channel.send({
       content: `${interaction.user}`,
@@ -216,14 +235,16 @@ client.on("interactionCreate", async (interaction) => {
       try {
         await interaction.channel.delete();
       } catch (error) {
-        console.log("❌ Nie udało się usunąć ticketu:", error);
+        console.log("❌ Błąd podczas zamykania ticketu:", error);
       }
     }, 3000);
+
+    return;
   }
 });
 
 // =========================
-// URUCHOMIENIE
+// AKTYWACJA / LOGOWANIE BOTA
 // =========================
 
 client.login(process.env.TOKEN);
