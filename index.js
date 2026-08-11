@@ -10,6 +10,10 @@ const {
   EmbedBuilder
 } = require("discord.js");
 
+// =========================
+// AKTYWACJA BOTA
+// =========================
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -18,12 +22,8 @@ const client = new Client({
   ]
 });
 
-// =========================
-// AKTYWACJA BOTA
-// =========================
-
 client.once("ready", () => {
-  console.log(`🤖 Titan Market Bot aktywny jako ${client.user.tag}`);
+  console.log(`🤖 BOT AKTYWNY: ${client.user.tag}`);
 });
 
 // =========================
@@ -40,10 +40,6 @@ client.on("messageCreate", async (message) => {
 
   // !TICKET
   if (message.content !== "!ticket") return;
-
-  // =========================
-  // MENU METOD PŁATNOŚCI
-  // =========================
 
   const embed = new EmbedBuilder()
     .setTitle("💳 METODY PŁATNOŚCI")
@@ -77,18 +73,17 @@ client.on("messageCreate", async (message) => {
         label: "MYPSC — 25% PROWIZJI",
         value: "mypsc",
         emoji: {
-          id: "1536522757592878727",
+          id: "1536522757592873319",
           name: "Mypsc"
         }
       }
     ]);
 
-  const row = new ActionRowBuilder()
-    .addComponents(paymentMenu);
-
   await message.channel.send({
     embeds: [embed],
-    components: [row]
+    components: [
+      new ActionRowBuilder().addComponents(paymentMenu)
+    ]
   });
 });
 
@@ -99,7 +94,7 @@ client.on("messageCreate", async (message) => {
 client.on("interactionCreate", async (interaction) => {
 
   // =========================
-  // WYBÓR PŁATNOŚCI
+  // WYBÓR METODY PŁATNOŚCI
   // =========================
 
   if (
@@ -135,7 +130,6 @@ client.on("interactionCreate", async (interaction) => {
       name: names[method],
       type: ChannelType.GuildText,
       topic: `ticket-${interaction.user.id}`,
-
       permissionOverwrites: [
         {
           id: interaction.guild.id,
@@ -168,10 +162,10 @@ client.on("interactionCreate", async (interaction) => {
       .addComponents(closeButton);
 
     // =========================
-    // WYBRANA METODA
+    // INFORMACJA O METODZIE
     // =========================
 
-    let paymentText = "";
+    let paymentText;
 
     if (method === "blik") {
       paymentText =
@@ -199,10 +193,6 @@ client.on("interactionCreate", async (interaction) => {
         "\n\n" +
         "Napisz poniżej, czego potrzebujesz."
       );
-
-    // =========================
-    // WIADOMOŚĆ W TICKIECIE
-    // =========================
 
     await channel.send({
       content: `${interaction.user}`,
@@ -235,7 +225,7 @@ client.on("interactionCreate", async (interaction) => {
       try {
         await interaction.channel.delete();
       } catch (error) {
-        console.log("❌ Błąd podczas zamykania ticketu:", error);
+        console.log("❌ Błąd zamykania ticketu:", error);
       }
     }, 3000);
 
@@ -244,7 +234,7 @@ client.on("interactionCreate", async (interaction) => {
 });
 
 // =========================
-// AKTYWACJA / LOGOWANIE BOTA
+// LOGOWANIE / URUCHOMIENIE
 // =========================
 
 client.login(process.env.TOKEN);
