@@ -787,4 +787,226 @@ client.on("interactionCreate", async (interaction) => {
     });
 
     return interaction.reply({
-      con
+      tent: ` + "`" + `✅ Ticket utworzony: ${channel}` + "`" + `,
+      ephemeral: true
+    });
+  }
+
+  // ===================================================
+  // 🔒 ZAMKNIĘCIE TICKETA
+  // ===================================================
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "close_ticket"
+  ) {
+
+    await interaction.reply(
+      "🔒 Ticket zostanie zamknięty za 3 sekundy..."
+    );
+
+    setTimeout(async () => {
+      try {
+        await interaction.channel.delete();
+      } catch (error) {
+        console.log(
+          "❌ Nie udało się zamknąć ticketu:",
+          error
+        );
+      }
+    }, 3000);
+
+    return;
+  }
+
+  // ===================================================
+  // 🎁 DROP
+  // ===================================================
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "drop_button"
+  ) {
+
+    const won = Math.random() < 0.05;
+
+    if (won) {
+      return interaction.reply({
+        content:
+          "🎉 **GRATULACJE!** Wylosowałeś **5% ZNIŻKI**! 💜",
+        ephemeral: true
+      });
+    }
+
+    return interaction.reply({
+      content:
+        "❌ Tym razem się nie udało. Spróbuj następnym razem! 🍀",
+      ephemeral: true
+    });
+  }
+
+  // ===================================================
+  // 🎉 KONKURS
+  // ===================================================
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "giveaway_join"
+  ) {
+
+    if (!giveawayRunning) {
+      return interaction.reply({
+        content:
+          "❌ Konkurs nie jest obecnie aktywny.",
+        ephemeral: true
+      });
+    }
+
+    if (giveawayUsers.has(interaction.user.id)) {
+      return interaction.reply({
+        content:
+          "❌ Już bierzesz udział w tym konkursie!",
+        ephemeral: true
+      });
+    }
+
+    giveawayUsers.add(interaction.user.id);
+
+    if (giveawayMessage) {
+      try {
+
+        const newEmbed =
+          new EmbedBuilder()
+            .setColor(PURPLE)
+            .setTitle("🎉 KONKURS TITAN MARKET")
+            .setDescription(
+              "🔥 Konkurs trwa!\n\n" +
+              "Kliknij **🎉 Weź udział**.\n\n" +
+              `👥 Uczestnicy: **${giveawayUsers.size}**`
+            );
+
+        await giveawayMessage.edit({
+          embeds: [newEmbed]
+        });
+
+      } catch (error) {
+        console.log(
+          "⚠️ Nie udało się zaktualizować konkursu:",
+          error
+        );
+      }
+    }
+
+    return interaction.reply({
+      content:
+        "🎉 **Zapisano Cię do konkursu!**",
+      ephemeral: true
+    });
+  }
+
+  // ===================================================
+  // ⭐ LEGIT / VOUCH
+  // ===================================================
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "show_vouch"
+  ) {
+
+    return interaction.reply({
+      content:
+        "⭐ Opinie klientów znajdziesz na kanale **#vouch**.",
+      ephemeral: true
+    });
+  }
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "leave_vouch"
+  ) {
+
+    const vouch =
+      interaction.guild.channels.cache.find(
+        channel =>
+          channel.name === "vouch" &&
+          channel.type === ChannelType.GuildText
+      );
+
+    if (!vouch) {
+      return interaction.reply({
+        content:
+          "❌ Nie znaleziono kanału **#vouch**.",
+        ephemeral: true
+      });
+    }
+
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("⭐ NOWY LEGIT")
+        .setDescription(
+          `👤 **Klient:** ${interaction.user}\n\n` +
+          "💜 **LEGIT — POZYTYWNA OPINIA**"
+        )
+        .setTimestamp();
+
+    await vouch.send({
+      embeds: [embed]
+    });
+
+    return interaction.reply({
+      content:
+        "⭐ Twój LEGIT został dodany na #vouch!",
+      ephemeral: true
+    });
+  }
+});
+
+// =====================================================
+// ❌ ZABEZPIECZENIE BŁĘDÓW
+// =====================================================
+
+process.on("unhandledRejection", error => {
+  console.error(
+    "❌ UNHANDLED REJECTION:",
+    error
+  );
+});
+
+process.on("uncaughtException", error => {
+  console.error(
+    "❌ UNCAUGHT EXCEPTION:",
+    error
+  );
+});
+
+client.on("error", error => {
+  console.error(
+    "❌ DISCORD CLIENT ERROR:",
+    error
+  );
+});
+
+// =====================================================
+// 🔑 TOKEN
+// =====================================================
+
+if (!process.env.TOKEN) {
+
+  console.error(
+    "❌ BRAK TOKENU! Dodaj TOKEN w Render → Environment."
+  );
+
+} else {
+
+  client.login(process.env.TOKEN)
+    .then(() => {
+      console.log("🔑 Bot zalogował się do Discorda.");
+    })
+    .catch(error => {
+      console.error(
+        "❌ BŁĄD LOGOWANIA:",
+        error
+      );
+    });
+}
