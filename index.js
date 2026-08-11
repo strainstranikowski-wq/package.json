@@ -1,3 +1,14 @@
+const http = require("http");
+
+const PORT = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("Titan Market Bot is online!");
+}).listen(PORT, "0.0.0.0", () => {
+  console.log(`🌐 Port ${PORT} działa`);
+});
+
 const {
   Client,
   GatewayIntentBits,
@@ -43,19 +54,20 @@ const MYPSC_EMOJI =
   "<:Mypsc:1536522757595078727>";
 
 // =====================================================
-// 📊 DANE BOTA
+// 📊 DANE
 // =====================================================
 
 const inviteCounts = new Map();
 const inviteCache = new Map();
-
 const dailyPurchases = new Map();
+
 const giveawayUsers = new Set();
 
 let giveawayRunning = false;
+let giveawayMessage = null;
 
 // =====================================================
-// 🤖 READY
+// 🤖 BOT GOTOWY
 // =====================================================
 
 client.once("ready", async () => {
@@ -80,15 +92,13 @@ client.once("ready", async () => {
         )
       );
     } catch (error) {
-      console.log(
-        "⚠️ Nie można pobrać zaproszeń."
-      );
+      console.log("⚠️ Nie można pobrać zaproszeń.");
     }
   }
 });
 
 // =====================================================
-// 👋 LOBBY + INVITE TRACKER
+// 👋 LOBBY + ZAPROSZENIA
 // =====================================================
 
 client.on("guildMemberAdd", async (member) => {
@@ -132,11 +142,8 @@ client.on("guildMemberAdd", async (member) => {
       "❓ Nie udało się ustalić zaproszenia.";
 
     if (usedInvite?.inviter) {
-      const inviterId =
-        usedInvite.inviter;
-
-      const key =
-        `${guild.id}-${inviterId}`;
+      const inviterId = usedInvite.inviter;
+      const key = `${guild.id}-${inviterId}`;
 
       const count =
         (inviteCounts.get(key) || 0) + 1;
@@ -171,12 +178,8 @@ client.on("guildMemberAdd", async (member) => {
         embeds: [embed]
       });
     }
-
   } catch (error) {
-    console.log(
-      "❌ Błąd lobby:",
-      error
-    );
+    console.log("❌ Błąd lobby:", error);
   }
 });
 
@@ -187,9 +190,7 @@ client.on("guildMemberAdd", async (member) => {
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
-  // ===================================================
   // 🏓 PING
-  // ===================================================
 
   if (message.content === "!ping") {
     return message.reply(
@@ -197,12 +198,9 @@ client.on("messageCreate", async (message) => {
     );
   }
 
-  // ===================================================
   // 🎫 TICKET
-  // ===================================================
 
   if (message.content === "!ticket") {
-
     const embed =
       new EmbedBuilder()
         .setColor(PURPLE)
@@ -250,23 +248,19 @@ client.on("messageCreate", async (message) => {
     await message.channel.send({
       embeds: [embed],
       components: [
-        new ActionRowBuilder()
-          .addComponents(menu)
+        new ActionRowBuilder().addComponents(menu)
       ]
     });
 
     return;
   }
 
-  // ===================================================
-  // 📩 SPRAWDŹ ZAPROSZENIA
-  // ===================================================
+  // 📩 SPRAWDZANIE ZAPROSZEŃ
 
   if (
     message.content === "!sprawdz" ||
     message.content === "!zaproszenia"
   ) {
-
     const key =
       `${message.guild.id}-${message.author.id}`;
 
@@ -287,12 +281,9 @@ client.on("messageCreate", async (message) => {
     });
   }
 
-  // ===================================================
   // 🛒 CENNIK
-  // ===================================================
 
   if (message.content === "!cennik") {
-
     const embed =
       new EmbedBuilder()
         .setColor(PURPLE)
@@ -308,12 +299,9 @@ client.on("messageCreate", async (message) => {
     });
   }
 
-  // ===================================================
-  // 💳 METODY PŁATNOŚCI
-  // ===================================================
+  // 💳 PŁATNOŚCI
 
   if (message.content === "!platnosci") {
-
     const embed =
       new EmbedBuilder()
         .setColor(PURPLE)
@@ -321,10 +309,8 @@ client.on("messageCreate", async (message) => {
         .setDescription(
           `${BLIK_EMOJI} **BLIK**\n` +
           `> 0% prowizji\n\n` +
-
           `${PSC_EMOJI} **PSC**\n` +
           `> 15% prowizji\n\n` +
-
           `${MYPSC_EMOJI} **MYPSC**\n` +
           `> 25% prowizji`
         );
@@ -334,12 +320,9 @@ client.on("messageCreate", async (message) => {
     });
   }
 
-  // ===================================================
   // 📜 REGULAMIN
-  // ===================================================
 
   if (message.content === "!regulamin") {
-
     const embed =
       new EmbedBuilder()
         .setColor(PURPLE)
@@ -354,17 +337,17 @@ client.on("messageCreate", async (message) => {
           "**3. Zakaz reklamowania innych serwerów.**\n" +
           "Bez zgody administracji nie reklamuj innych serwerów.\n\n" +
 
-          "**4. Ticket.**\n" +
-          "Opisz dokładnie, czego potrzebujesz i nie spamuj administracji.\n\n" +
+          "**4. Tickety.**\n" +
+          "Opisz dokładnie, czego potrzebujesz i nie spamuj.\n\n" +
 
           "**5. Płatności.**\n" +
           "Podawaj prawdziwe informacje dotyczące płatności.\n\n" +
 
           "**6. Vouch.**\n" +
-          "Zakaz fałszywych opinii i wymuszania pozytywnych ocen.\n\n" +
+          "Zakaz fałszywych opinii.\n\n" +
 
           "**7. Konkursy i dropy.**\n" +
-          "Każdy użytkownik może brać udział zgodnie z zasadami wydarzenia.\n\n" +
+          "Każdy uczestnik musi przestrzegać zasad wydarzenia.\n\n" +
 
           "**8. Administracja.**\n" +
           "Administracja może zamknąć ticket w przypadku łamania regulaminu.\n\n" +
@@ -377,12 +360,9 @@ client.on("messageCreate", async (message) => {
     });
   }
 
-  // ===================================================
   // 🎁 DROP
-  // ===================================================
 
   if (message.content === "!drop") {
-
     const button =
       new ButtonBuilder()
         .setCustomId("drop_button")
@@ -403,18 +383,14 @@ client.on("messageCreate", async (message) => {
     return message.channel.send({
       embeds: [embed],
       components: [
-        new ActionRowBuilder()
-          .addComponents(button)
+        new ActionRowBuilder().addComponents(button)
       ]
     });
   }
 
-  // ===================================================
   // 🎉 KONKURSY
-  // ===================================================
 
   if (message.content === "!konkursy") {
-
     giveawayUsers.clear();
     giveawayRunning = true;
 
@@ -430,31 +406,25 @@ client.on("messageCreate", async (message) => {
         .setColor(PURPLE)
         .setTitle("🎉 KONKURS TITAN MARKET")
         .setDescription(
-          "🔥 Chcesz wziąć udział?\n\n" +
+          "🔥 Konkurs trwa!\n\n" +
           "Kliknij **🎉 Weź udział**.\n\n" +
           "👥 Uczestnicy: **0**"
         );
 
-    const sent =
+    giveawayMessage =
       await message.channel.send({
         embeds: [embed],
         components: [
-          new ActionRowBuilder()
-            .addComponents(button)
+          new ActionRowBuilder().addComponents(button)
         ]
       });
-
-    global.giveawayMessage = sent;
 
     return;
   }
 
-  // ===================================================
   // ⭐ CZY JESTEŚMY LEGIT
-  // ===================================================
 
   if (message.content === "!legit") {
-
     const button =
       new ButtonBuilder()
         .setCustomId("show_vouch")
@@ -474,18 +444,14 @@ client.on("messageCreate", async (message) => {
     return message.channel.send({
       embeds: [embed],
       components: [
-        new ActionRowBuilder()
-          .addComponents(button)
+        new ActionRowBuilder().addComponents(button)
       ]
     });
   }
 
-  // ===================================================
-  // ⭐ VOUCH W TICKIECIE
-  // ===================================================
+  // ⭐ VOUCH
 
   if (message.content === "!vouch") {
-
     const button =
       new ButtonBuilder()
         .setCustomId("leave_vouch")
@@ -503,20 +469,18 @@ client.on("messageCreate", async (message) => {
         );
 
     return message.channel.send({
-      embeds: [embed],
+      embeds: [
+        embed
+      ],
       components: [
-        new ActionRowBuilder()
-          .addComponents(button)
+        new ActionRowBuilder().addComponents(button)
       ]
     });
   }
 
-  // ===================================================
   // 💰 DAILY
-  // ===================================================
 
   if (message.content === "!daily") {
-
     const today =
       new Date().toLocaleDateString("pl-PL");
 
@@ -538,12 +502,9 @@ client.on("messageCreate", async (message) => {
     });
   }
 
-  // ===================================================
-  // 🎯 POTWIERDŹ ZAKUP — ADMIN
-  // ===================================================
+  // ✅ POTWIERDZENIE ZAKUPU
 
   if (message.content === "!potwierdz") {
-
     if (
       !message.member.permissions.has(
         PermissionsBitField.Flags.ManageGuild
@@ -578,9 +539,7 @@ client.on("messageCreate", async (message) => {
 
 client.on("interactionCreate", async (interaction) => {
 
-  // ===================================================
-  // 🎫 KATEGORIA TICKETU
-  // ===================================================
+  // 🎫 WYBÓR KATEGORII
 
   if (
     interaction.isStringSelectMenu() &&
@@ -684,8 +643,7 @@ client.on("interactionCreate", async (interaction) => {
       content: `${interaction.user}`,
       embeds: [embed],
       components: [
-        new ActionRowBuilder()
-          .addComponents(closeButton)
+        new ActionRowBuilder().addComponents(closeButton)
       ]
     });
 
@@ -698,9 +656,7 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // ===================================================
-  // 🔒 ZAMKNIJ TICKET
-  // ===================================================
+  // 🔒 ZAMKNIĘCIE TICKETU
 
   if (
     interaction.isButton() &&
@@ -726,9 +682,7 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // ===================================================
   // 🎁 DROP
-  // ===================================================
 
   if (
     interaction.isButton() &&
@@ -755,14 +709,20 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
-  // ===================================================
   // 🎉 KONKURS
-  // ===================================================
 
   if (
     interaction.isButton() &&
     interaction.customId === "giveaway_join"
   ) {
+
+    if (!giveawayRunning) {
+      return interaction.reply({
+        content:
+          "❌ Ten konkurs jest już zakończony.",
+        ephemeral: true
+      });
+    }
 
     if (giveawayUsers.has(interaction.user.id)) {
       return interaction.reply({
@@ -776,7 +736,7 @@ client.on("interactionCreate", async (interaction) => {
       interaction.user.id
     );
 
-    if (global.giveawayMessage) {
+    if (giveawayMessage) {
 
       const embed =
         new EmbedBuilder()
@@ -784,11 +744,11 @@ client.on("interactionCreate", async (interaction) => {
           .setTitle("🎉 KONKURS TITAN MARKET")
           .setDescription(
             "🔥 Konkurs trwa!\n\n" +
-            "🎉 Kliknij przycisk, aby dołączyć.\n\n" +
+            "Kliknij **🎉 Weź udział**.\n\n" +
             `👥 Uczestnicy: **${giveawayUsers.size}**`
           );
 
-      await global.giveawayMessage.edit({
+      await giveawayMessage.edit({
         embeds: [embed]
       });
     }
@@ -800,9 +760,7 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
-  // ===================================================
   // ⭐ VOUCH
-  // ===================================================
 
   if (
     interaction.isButton() &&
@@ -846,5 +804,38 @@ client.on("interactionCreate", async (interaction) => {
     });
   }
 
-  // ===================================================
-    
+  // ⭐ POKAŻ VOUCH
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "show_vouch"
+  ) {
+
+    const vouchChannel =
+      interaction.guild.channels.cache.find(
+        channel =>
+          channel.name === "vouch" &&
+          channel.type === ChannelType.GuildText
+      );
+
+    if (!vouchChannel) {
+      return interaction.reply({
+        content:
+          "❌ Nie znaleziono kanału #vouch.",
+        ephemeral: true
+      });
+    }
+
+    return interaction.reply({
+      content:
+        `⭐ Opinie znajdziesz tutaj: ${vouchChannel}`,
+      ephemeral: true
+    });
+  }
+});
+
+// =====================================================
+// 🔐 URUCHOMIENIE
+// =====================================================
+
+client.login(process.env.TOKEN);
