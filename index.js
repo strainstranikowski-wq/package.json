@@ -10,9 +10,9 @@ const {
   EmbedBuilder
 } = require("discord.js");
 
-// ======================================================
+// =====================================================
 // 🤖 AKTYWACJA BOTA
-// ======================================================
+// =====================================================
 
 const client = new Client({
   intents: [
@@ -24,19 +24,44 @@ const client = new Client({
   ]
 });
 
-// ======================================================
-// 📊 ZMIENNE
-// ======================================================
+// =====================================================
+// 💜 USTAWIENIA
+// =====================================================
 
-const inviteCache = new Map();
+const PURPLE = 0x8B5CF6;
+
+const TITAN_EMOJI =
+  "<:TitanHolo:1536522515092873319>";
+
+const BLIK_EMOJI =
+  "<:Blik:1536522618348380331>";
+
+const PSC_EMOJI =
+  "<:Psc:1536522696542781450>";
+
+const MYPSC_EMOJI =
+  "<:Mypsc:1536522757595078727>";
+
+// =====================================================
+// 📊 DANE BOTA
+// =====================================================
+
 const inviteCounts = new Map();
+const inviteCache = new Map();
 
-// ======================================================
-// 🤖 BOT ONLINE
-// ======================================================
+const dailyPurchases = new Map();
+const giveawayUsers = new Set();
+
+let giveawayRunning = false;
+
+// =====================================================
+// 🤖 READY
+// =====================================================
 
 client.once("ready", async () => {
-  console.log(`🤖 TITAN MARKET BOT AKTYWNY: ${client.user.tag}`);
+  console.log(
+    `🤖 TITAN MARKET BOT AKTYWNY: ${client.user.tag}`
+  );
 
   for (const guild of client.guilds.cache.values()) {
     try {
@@ -55,14 +80,16 @@ client.once("ready", async () => {
         )
       );
     } catch (error) {
-      console.log("❌ Nie udało się pobrać zaproszeń.");
+      console.log(
+        "⚠️ Nie można pobrać zaproszeń."
+      );
     }
   }
 });
 
-// ======================================================
-// 👋 LOBBY + ZAPROSZENIA
-// ======================================================
+// =====================================================
+// 👋 LOBBY + INVITE TRACKER
+// =====================================================
 
 client.on("guildMemberAdd", async (member) => {
   try {
@@ -71,7 +98,8 @@ client.on("guildMemberAdd", async (member) => {
     const oldInvites =
       inviteCache.get(guild.id) || new Map();
 
-    const newInvites = await guild.invites.fetch();
+    const newInvites =
+      await guild.invites.fetch();
 
     let usedInvite = null;
 
@@ -100,38 +128,44 @@ client.on("guildMemberAdd", async (member) => {
       )
     );
 
-    let inviterText = "❓ Nie udało się ustalić zaproszenia.";
+    let inviteText =
+      "❓ Nie udało się ustalić zaproszenia.";
 
     if (usedInvite?.inviter) {
-      const inviterId = usedInvite.inviter;
+      const inviterId =
+        usedInvite.inviter;
 
-      const current =
-        inviteCounts.get(`${guild.id}-${inviterId}`) || 0;
+      const key =
+        `${guild.id}-${inviterId}`;
 
-      inviteCounts.set(
-        `${guild.id}-${inviterId}`,
-        current + 1
-      );
+      const count =
+        (inviteCounts.get(key) || 0) + 1;
 
-      inviterText =
+      inviteCounts.set(key, count);
+
+      inviteText =
         `👤 Zaprosił: <@${inviterId}>\n` +
-        `📨 Zaproszenia: **${current + 1}**`;
+        `📨 Ma teraz **${count} zaproszeń**`;
     }
 
-    const lobby = guild.channels.cache.find(
-      channel =>
-        channel.name === "lobby" &&
-        channel.type === ChannelType.GuildText
-    );
+    const lobby =
+      guild.channels.cache.find(
+        channel =>
+          channel.name === "lobby" &&
+          channel.type === ChannelType.GuildText
+      );
 
     if (lobby) {
-      const embed = new EmbedBuilder()
-        .setTitle("👋 NOWA OSOBA NA SERWERZE")
-        .setDescription(
-          `👤 **${member.user}** właśnie dołączył!\n\n` +
-          `${inviterText}\n\n` +
-          `🎉 Witamy na **Titan Market**!`
-        );
+      const embed =
+        new EmbedBuilder()
+          .setColor(PURPLE)
+          .setTitle("👋 NOWA OSOBA")
+          .setDescription(
+            `🎉 Witaj ${member.user}!\n\n` +
+            `👤 **${member.user.tag}** dołączył na serwer.\n\n` +
+            inviteText
+          )
+          .setTimestamp();
 
       await lobby.send({
         embeds: [embed]
@@ -139,302 +173,436 @@ client.on("guildMemberAdd", async (member) => {
     }
 
   } catch (error) {
-    console.log("❌ Błąd lobby:", error);
+    console.log(
+      "❌ Błąd lobby:",
+      error
+    );
   }
 });
 
-// ======================================================
-// 🏓 !PING
-// ======================================================
+// =====================================================
+// 💬 KOMENDY
+// =====================================================
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
+  // ===================================================
+  // 🏓 PING
+  // ===================================================
+
   if (message.content === "!ping") {
-    return message.reply("🏓 Pong! Bot działa!");
+    return message.reply(
+      "🏓 **Pong! Titan Market Bot działa!**"
+    );
   }
 
-  // ====================================================
-  // 🎫 !TICKET
-  // ====================================================
+  // ===================================================
+  // 🎫 TICKET
+  // ===================================================
 
   if (message.content === "!ticket") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎫 TITAN MARKET")
-      .setDescription(
-        "## 🎫 OTWÓRZ TICKET\n\n" +
-        "Wybierz metodę płatności poniżej."
-      );
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("🎫 UTWÓRZ TICKET")
+        .setDescription(
+          "### 💳 METODY PŁATNOŚCI\n\n" +
+          `${BLIK_EMOJI} **BLIK — 0% PROWIZJI**\n` +
+          `${PSC_EMOJI} **PSC — 15% PROWIZJI**\n` +
+          `${MYPSC_EMOJI} **MYPSC — 25% PROWIZJI**\n\n` +
+          "━━━━━━━━━━━━━━━━━━━━\n\n" +
+          "### 🎫 WYBIERZ KATEGORIĘ\n" +
+          "Wybierz odpowiednią kategorię poniżej."
+        );
 
-    const menu = new StringSelectMenuBuilder()
-      .setCustomId("payment_method")
-      .setPlaceholder("💳 METODY PŁATNOŚCI")
-      .addOptions([
-        {
-          label: "BLIK — 0% PROWIZJI",
-          value: "blik",
-          emoji: {
-            id: "1536522618348380331",
-            name: "Blik"
+    const menu =
+      new StringSelectMenuBuilder()
+        .setCustomId("ticket_category")
+        .setPlaceholder("🎫 Wybierz kategorię")
+        .addOptions([
+          {
+            label: "Zakup Titan Holo",
+            value: "zakup",
+            emoji: {
+              id: "1536522515092873319",
+              name: "TitanHolo"
+            }
+          },
+          {
+            label: "Nagroda",
+            value: "nagroda",
+            emoji: "🎁"
+          },
+          {
+            label: "Pomoc",
+            value: "pomoc",
+            emoji: "🛠️"
+          },
+          {
+            label: "Współpraca",
+            value: "wspolpraca",
+            emoji: "🤝"
           }
-        },
-        {
-          label: "PSC — 15% PROWIZJI",
-          value: "psc",
-          emoji: {
-            id: "1536522696542781450",
-            name: "Psc"
-          }
-        },
-        {
-          label: "MYPSC — 25% PROWIZJI",
-          value: "mypsc",
-          emoji: {
-            id: "1536522757595078727",
-            name: "Mypsc"
-          }
-        }
-      ]);
+        ]);
 
     await message.channel.send({
       embeds: [embed],
       components: [
-        new ActionRowBuilder().addComponents(menu)
+        new ActionRowBuilder()
+          .addComponents(menu)
       ]
     });
 
     return;
   }
 
-  // ====================================================
-  // 📊 !ZAPROSZENIA
-  // ====================================================
+  // ===================================================
+  // 📩 SPRAWDŹ ZAPROSZENIA
+  // ===================================================
 
-  if (message.content === "!zaproszenia") {
-
-    const count =
-      inviteCounts.get(
-        `${message.guild.id}-${message.author.id}`
-      ) || 0;
-
-    return message.reply(
-      `📨 **Twoje zaproszenia:** ${count}`
-    );
-  }
-
-  // ====================================================
-  // 🎁 !DROP
-  // ====================================================
-
-  if (message.content === "!drop") {
-
-    const chance = Math.random();
-
-    if (chance <= 0.05) {
-      return message.reply(
-        "🎉 **GRATULACJE!**\n\n" +
-        "🎁 Wygrałeś **5% ZNIŻKI**!\n" +
-        "💰 Zniżkę możesz wykorzystać przy zakupie."
-      );
-    }
-
-    return message.reply(
-      "❌ Niestety tym razem się nie udało.\n" +
-      "🍀 Spróbuj ponownie później!"
-    );
-  }
-
-  // ====================================================
-  // 💰 !DAILY
-  // ====================================================
-
-  if (message.content === "!daily") {
+  if (
+    message.content === "!sprawdz" ||
+    message.content === "!zaproszenia"
+  ) {
 
     const key =
-      `daily-${message.guild.id}-${message.author.id}`;
+      `${message.guild.id}-${message.author.id}`;
 
-    if (!global.dailyCooldown) {
-      global.dailyCooldown = new Map();
-    }
+    const count =
+      inviteCounts.get(key) || 0;
 
-    if (global.dailyCooldown.has(key)) {
-      return message.reply(
-        "⏰ Daily zostało już odebrane. Spróbuj później."
-      );
-    }
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("📨 TWOJE ZAPROSZENIA")
+        .setDescription(
+          `${message.author}\n\n` +
+          `📩 Zaproszenia: **${count}**`
+        );
 
-    global.dailyCooldown.set(key, Date.now());
-
-    setTimeout(() => {
-      global.dailyCooldown.delete(key);
-    }, 24 * 60 * 60 * 1000);
-
-    return message.reply(
-      "💰 **DAILY TITAN MARKET**\n\n" +
-      "🎁 Odebrano dzisiejszą nagrodę!"
-    );
+    return message.channel.send({
+      embeds: [embed]
+    });
   }
 
-  // ====================================================
-  // 🛒 !CENNIK
-  // ====================================================
+  // ===================================================
+  // 🛒 CENNIK
+  // ===================================================
 
   if (message.content === "!cennik") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("🛒 CENNIK CASE PARADISE")
-      .setDescription(
-        "<:TitanHolo:1536522515092873319> **1 TITAN = 1 ZŁ**\n\n" +
-        "💰 Kupujesz tyle Titanów, ile potrzebujesz.\n\n" +
-        "🎫 Aby kupić, użyj **!ticket**."
-      );
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("🛒 CENNIK — CASE PARADISE")
+        .setDescription(
+          `${TITAN_EMOJI} **1 TITAN = 1 ZŁ**\n\n` +
+          "💰 Kupujesz tyle Titanów, ile potrzebujesz.\n\n" +
+          "🎫 Aby kupić, użyj `!ticket`."
+        );
 
     return message.channel.send({
       embeds: [embed]
     });
   }
 
-  // ====================================================
-  // 💳 !PLATNOSCI
-  // ====================================================
+  // ===================================================
+  // 💳 METODY PŁATNOŚCI
+  // ===================================================
 
   if (message.content === "!platnosci") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("💳 METODY PŁATNOŚCI")
-      .setDescription(
-        "<:Blik:1536522618348380331> **BLIK — 0% PROWIZJI**\n\n" +
-        "<:Psc:1536522696542781450> **PSC — 15% PROWIZJI**\n\n" +
-        "<:Mypsc:1536522757595078727> **MYPSC — 25% PROWIZJI**"
-      );
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("💳 METODY PŁATNOŚCI")
+        .setDescription(
+          `${BLIK_EMOJI} **BLIK**\n` +
+          `> 0% prowizji\n\n` +
+
+          `${PSC_EMOJI} **PSC**\n` +
+          `> 15% prowizji\n\n` +
+
+          `${MYPSC_EMOJI} **MYPSC**\n` +
+          `> 25% prowizji`
+        );
 
     return message.channel.send({
       embeds: [embed]
     });
   }
 
-  // ====================================================
-  // 📜 !REGULAMIN
-  // ====================================================
+  // ===================================================
+  // 📜 REGULAMIN
+  // ===================================================
 
   if (message.content === "!regulamin") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("📜 REGULAMIN TITAN MARKET")
-      .setDescription(
-        "1️⃣ Zakaz oszustw.\n\n" +
-        "2️⃣ Zakaz fałszywych płatności.\n\n" +
-        "3️⃣ Zakaz spamu.\n\n" +
-        "4️⃣ Szanuj innych użytkowników.\n\n" +
-        "5️⃣ Administracja może zamknąć ticket w przypadku łamania regulaminu."
-      );
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("📜 REGULAMIN TITAN MARKET")
+        .setDescription(
+          "**1. Szanuj innych użytkowników.**\n" +
+          "Zakaz wyzywania, prowokowania i spamowania.\n\n" +
+
+          "**2. Zakaz oszustw.**\n" +
+          "Nie wysyłaj fałszywych potwierdzeń płatności.\n\n" +
+
+          "**3. Zakaz reklamowania innych serwerów.**\n" +
+          "Bez zgody administracji nie reklamuj innych serwerów.\n\n" +
+
+          "**4. Ticket.**\n" +
+          "Opisz dokładnie, czego potrzebujesz i nie spamuj administracji.\n\n" +
+
+          "**5. Płatności.**\n" +
+          "Podawaj prawdziwe informacje dotyczące płatności.\n\n" +
+
+          "**6. Vouch.**\n" +
+          "Zakaz fałszywych opinii i wymuszania pozytywnych ocen.\n\n" +
+
+          "**7. Konkursy i dropy.**\n" +
+          "Każdy użytkownik może brać udział zgodnie z zasadami wydarzenia.\n\n" +
+
+          "**8. Administracja.**\n" +
+          "Administracja może zamknąć ticket w przypadku łamania regulaminu.\n\n" +
+
+          "💜 Dołączając do Titan Market akceptujesz regulamin."
+        );
 
     return message.channel.send({
       embeds: [embed]
     });
   }
 
-  // ====================================================
-  // ⭐ !LEGIT
-  // ====================================================
+  // ===================================================
+  // 🎁 DROP
+  // ===================================================
 
-  if (message.content === "!legit") {
+  if (message.content === "!drop") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("⭐ CZY JESTEŚMY LEGIT?")
-      .setDescription(
-        "Chcesz zobaczyć opinie klientów?\n\n" +
-        "Kliknij przycisk poniżej, aby przejść do opinii."
-      );
+    const button =
+      new ButtonBuilder()
+        .setCustomId("drop_button")
+        .setLabel("Wylosuj")
+        .setEmoji("🎁")
+        .setStyle(ButtonStyle.Primary);
 
-    const button = new ButtonBuilder()
-      .setCustomId("show_vouches")
-      .setLabel("Zobacz LEGIT")
-      .setEmoji("⭐")
-      .setStyle(ButtonStyle.Success);
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("🎁 DROP — 5% ZNIŻKI")
+        .setDescription(
+          "Masz szansę wygrać **5% zniżki**!\n\n" +
+          "🍀 Szansa jest mała.\n" +
+          "🎁 Kliknij **Wylosuj**."
+        );
 
     return message.channel.send({
       embeds: [embed],
       components: [
-        new ActionRowBuilder().addComponents(button)
+        new ActionRowBuilder()
+          .addComponents(button)
       ]
     });
   }
 
-  // ====================================================
-  // 🎉 !KONKURSY
-  // ====================================================
+  // ===================================================
+  // 🎉 KONKURSY
+  // ===================================================
 
   if (message.content === "!konkursy") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎉 KONKURSY")
-      .setDescription(
-        "🏆 Aktualne konkursy Titan Market\n\n" +
-        "📢 Informacje o nowych konkursach będą publikowane tutaj."
-      );
+    giveawayUsers.clear();
+    giveawayRunning = true;
+
+    const button =
+      new ButtonBuilder()
+        .setCustomId("giveaway_join")
+        .setLabel("Weź udział")
+        .setEmoji("🎉")
+        .setStyle(ButtonStyle.Success);
+
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("🎉 KONKURS TITAN MARKET")
+        .setDescription(
+          "🔥 Chcesz wziąć udział?\n\n" +
+          "Kliknij **🎉 Weź udział**.\n\n" +
+          "👥 Uczestnicy: **0**"
+        );
+
+    const sent =
+      await message.channel.send({
+        embeds: [embed],
+        components: [
+          new ActionRowBuilder()
+            .addComponents(button)
+        ]
+      });
+
+    global.giveawayMessage = sent;
+
+    return;
+  }
+
+  // ===================================================
+  // ⭐ CZY JESTEŚMY LEGIT
+  // ===================================================
+
+  if (message.content === "!legit") {
+
+    const button =
+      new ButtonBuilder()
+        .setCustomId("show_vouch")
+        .setLabel("Zobacz LEGIT")
+        .setEmoji("⭐")
+        .setStyle(ButtonStyle.Success);
+
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("⭐ CZY JESTEŚMY LEGIT?")
+        .setDescription(
+          "Chcesz zobaczyć opinie naszych klientów?\n\n" +
+          "Kliknij przycisk poniżej."
+        );
+
+    return message.channel.send({
+      embeds: [embed],
+      components: [
+        new ActionRowBuilder()
+          .addComponents(button)
+      ]
+    });
+  }
+
+  // ===================================================
+  // ⭐ VOUCH W TICKIECIE
+  // ===================================================
+
+  if (message.content === "!vouch") {
+
+    const button =
+      new ButtonBuilder()
+        .setCustomId("leave_vouch")
+        .setLabel("LEGIT")
+        .setEmoji("⭐")
+        .setStyle(ButtonStyle.Success);
+
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("⭐ ZOSTAW VOUCH")
+        .setDescription(
+          "Jeśli wszystko przebiegło pomyślnie,\n" +
+          "kliknij **⭐ LEGIT**."
+        );
+
+    return message.channel.send({
+      embeds: [embed],
+      components: [
+        new ActionRowBuilder()
+          .addComponents(button)
+      ]
+    });
+  }
+
+  // ===================================================
+  // 💰 DAILY
+  // ===================================================
+
+  if (message.content === "!daily") {
+
+    const today =
+      new Date().toLocaleDateString("pl-PL");
+
+    const count =
+      dailyPurchases.get(today) || 0;
+
+    const embed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("💰 DAILY — TITAN MARKET")
+        .setDescription(
+          `📅 **${today}**\n\n` +
+          `🛒 Dzisiaj kupiło: **${count} osób**\n\n` +
+          "🔄 Licznik resetuje się każdego dnia."
+        );
 
     return message.channel.send({
       embeds: [embed]
     });
   }
 
-  // ====================================================
-  // ✅ !WERYFIKACJA
-  // ====================================================
+  // ===================================================
+  // 🎯 POTWIERDŹ ZAKUP — ADMIN
+  // ===================================================
 
-  if (message.content === "!weryfikacja") {
+  if (message.content === "!potwierdz") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("✅ WERYFIKACJA")
-      .setDescription(
-        "Kliknij przycisk poniżej, aby się zweryfikować."
+    if (
+      !message.member.permissions.has(
+        PermissionsBitField.Flags.ManageGuild
+      )
+    ) {
+      return message.reply(
+        "❌ Tylko administracja może potwierdzić zakup."
       );
+    }
 
-    const button = new ButtonBuilder()
-      .setCustomId("verify")
-      .setLabel("Weryfikuj się")
-      .setEmoji("✅")
-      .setStyle(ButtonStyle.Success);
+    const today =
+      new Date().toLocaleDateString("pl-PL");
 
-    return message.channel.send({
-      embeds: [embed],
-      components: [
-        new ActionRowBuilder().addComponents(button)
-      ]
-    });
+    const count =
+      dailyPurchases.get(today) || 0;
+
+    dailyPurchases.set(
+      today,
+      count + 1
+    );
+
+    return message.reply(
+      `✅ Zakup potwierdzony!\n` +
+      `🛒 Dzisiejsze zakupy: **${count + 1}**`
+    );
   }
 });
 
-// ======================================================
+// =====================================================
 // 🎫 INTERAKCJE
-// ======================================================
+// =====================================================
 
 client.on("interactionCreate", async (interaction) => {
 
-  // ====================================================
-  // 💳 WYBÓR PŁATNOŚCI
-  // ====================================================
+  // ===================================================
+  // 🎫 KATEGORIA TICKETU
+  // ===================================================
 
   if (
     interaction.isStringSelectMenu() &&
-    interaction.customId === "payment_method"
+    interaction.customId === "ticket_category"
   ) {
 
-    const method = interaction.values[0];
+    const category =
+      interaction.values[0];
 
     const names = {
-      blik: "💳・zakup-blik",
-      psc: "💳・zakup-psc",
-      mypsc: "💳・zakup-mypsc"
+      zakup: "🛒・zakup-titan-holo",
+      nagroda: "🎁・nagroda",
+      pomoc: "🛠️・pomoc",
+      wspolpraca: "🤝・wspolpraca"
     };
 
-    const existing = interaction.guild.channels.cache.find(
-      channel =>
-        channel.topic ===
-        `ticket-${interaction.user.id}`
-    );
+    const existing =
+      interaction.guild.channels.cache.find(
+        channel =>
+          channel.topic ===
+          `ticket-${interaction.user.id}`
+      );
 
     if (existing) {
       return interaction.reply({
@@ -446,7 +614,7 @@ client.on("interactionCreate", async (interaction) => {
 
     const channel =
       await interaction.guild.channels.create({
-        name: names[method],
+        name: names[category],
         type: ChannelType.GuildText,
         topic:
           `ticket-${interaction.user.id}`,
@@ -476,40 +644,45 @@ client.on("interactionCreate", async (interaction) => {
         .setEmoji("🔒")
         .setStyle(ButtonStyle.Danger);
 
-    let paymentText = "";
+    let description = "";
 
-    if (method === "blik") {
-      paymentText =
-        "<:Blik:1536522618348380331> **BLIK**\n" +
-        "💰 **0% PROWIZJI**";
+    if (category === "zakup") {
+      description =
+        `# ${TITAN_EMOJI} ZAKUP TITAN HOLO\n\n` +
+        "### 💳 METODY PŁATNOŚCI\n\n" +
+        `${BLIK_EMOJI} **BLIK — 0% PROWIZJI**\n` +
+        `${PSC_EMOJI} **PSC — 15% PROWIZJI**\n` +
+        `${MYPSC_EMOJI} **MYPSC — 25% PROWIZJI**\n\n` +
+        `${TITAN_EMOJI} **1 TITAN = 1 ZŁ**`;
     }
 
-    if (method === "psc") {
-      paymentText =
-        "<:Psc:1536522696542781450> **PSC**\n" +
-        "💰 **15% PROWIZJI**";
+    if (category === "nagroda") {
+      description =
+        "# 🎁 NAGRODA\n\n" +
+        "Opisz, jaką nagrodę chcesz odebrać.";
     }
 
-    if (method === "mypsc") {
-      paymentText =
-        "<:Mypsc:1536522757595078727> **MYPSC**\n" +
-        "💰 **25% PROWIZJI**";
+    if (category === "pomoc") {
+      description =
+        "# 🛠️ POMOC\n\n" +
+        "Opisz swój problem.";
     }
 
-    const ticketEmbed =
+    if (category === "wspolpraca") {
+      description =
+        "# 🤝 WSPÓŁPRACA\n\n" +
+        "Opisz swoją propozycję współpracy.";
+    }
+
+    const embed =
       new EmbedBuilder()
+        .setColor(PURPLE)
         .setTitle("🎫 TITAN MARKET")
-        .setDescription(
-          "# 🛒 ZAKUP TITAN\n\n" +
-          paymentText +
-          "\n\n" +
-          "<:TitanHolo:1536522515092873319> **1 TITAN = 1 ZŁ**\n\n" +
-          "Napisz, ile Titanów chcesz kupić."
-        );
+        .setDescription(description);
 
     await channel.send({
       content: `${interaction.user}`,
-      embeds: [ticketEmbed],
+      embeds: [embed],
       components: [
         new ActionRowBuilder()
           .addComponents(closeButton)
@@ -525,9 +698,9 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // ====================================================
-  // 🔒 ZAMKNIĘCIE TICKETU
-  // ====================================================
+  // ===================================================
+  // 🔒 ZAMKNIJ TICKET
+  // ===================================================
 
   if (
     interaction.isButton() &&
@@ -553,13 +726,87 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // ====================================================
-  // ⭐ LEGIT / VOUCH
-  // ====================================================
+  // ===================================================
+  // 🎁 DROP
+  // ===================================================
 
   if (
     interaction.isButton() &&
-    interaction.customId === "show_vouches"
+    interaction.customId === "drop_button"
+  ) {
+
+    const won =
+      Math.random() <= 0.05;
+
+    if (won) {
+      return interaction.reply({
+        content:
+          "🎉 **GRATULACJE!**\n\n" +
+          "🎁 Wygrałeś **5% ZNIŻKI**!",
+        ephemeral: true
+      });
+    }
+
+    return interaction.reply({
+      content:
+        "❌ Tym razem się nie udało!\n" +
+        "🍀 Spróbuj ponownie później.",
+      ephemeral: true
+    });
+  }
+
+  // ===================================================
+  // 🎉 KONKURS
+  // ===================================================
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "giveaway_join"
+  ) {
+
+    if (giveawayUsers.has(interaction.user.id)) {
+      return interaction.reply({
+        content:
+          "❌ Już bierzesz udział w konkursie!",
+        ephemeral: true
+      });
+    }
+
+    giveawayUsers.add(
+      interaction.user.id
+    );
+
+    if (global.giveawayMessage) {
+
+      const embed =
+        new EmbedBuilder()
+          .setColor(PURPLE)
+          .setTitle("🎉 KONKURS TITAN MARKET")
+          .setDescription(
+            "🔥 Konkurs trwa!\n\n" +
+            "🎉 Kliknij przycisk, aby dołączyć.\n\n" +
+            `👥 Uczestnicy: **${giveawayUsers.size}**`
+          );
+
+      await global.giveawayMessage.edit({
+        embeds: [embed]
+      });
+    }
+
+    return interaction.reply({
+      content:
+        "🎉 Zostałeś dodany do konkursu!",
+      ephemeral: true
+    });
+  }
+
+  // ===================================================
+  // ⭐ VOUCH
+  // ===================================================
+
+  if (
+    interaction.isButton() &&
+    interaction.customId === "leave_vouch"
   ) {
 
     const vouchChannel =
@@ -577,34 +824,27 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
+    const vouchEmbed =
+      new EmbedBuilder()
+        .setColor(PURPLE)
+        .setTitle("⭐ NOWY VOUCH")
+        .setDescription(
+          `👤 Klient: ${interaction.user}\n\n` +
+          "💜 **LEGIT / POZYTYWNA OPINIA**\n\n" +
+          "Dziękujemy za zakup w Titan Market!"
+        )
+        .setTimestamp();
+
+    await vouchChannel.send({
+      embeds: [vouchEmbed]
+    });
+
     return interaction.reply({
       content:
-        `⭐ Opinie klientów znajdziesz tutaj: ${vouchChannel}`,
+        "⭐ Dzięki! Twój Vouch został dodany!",
       ephemeral: true
     });
   }
 
-  // ====================================================
-  // ✅ WERYFIKACJA
-  // ====================================================
-
-  if (
-    interaction.isButton() &&
-    interaction.customId === "verify"
-  ) {
-
-    await interaction.reply({
-      content:
-        "✅ Zostałeś zweryfikowany!",
-      ephemeral: true
-    });
-
-    return;
-  }
-});
-
-// ======================================================
-// 🔐 LOGOWANIE BOTA
-// ======================================================
-
-client.login(process.env.TOKEN);
+  // ===================================================
+    
