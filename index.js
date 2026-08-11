@@ -5,6 +5,8 @@ const {
   PermissionsBitField,
   ActionRowBuilder,
   StringSelectMenuBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   EmbedBuilder
 } = require("discord.js");
 
@@ -20,7 +22,10 @@ client.once("ready", () => {
   console.log(`✅ Titan Market Bot online jako ${client.user.tag}`);
 });
 
-// !ping + !ticket
+// =========================
+// !PING + !TICKET
+// =========================
+
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
 
@@ -29,6 +34,7 @@ client.on("messageCreate", async (message) => {
   }
 
   if (message.content === "!ticket") {
+
     const embed = new EmbedBuilder()
       .setTitle("🎫 TITAN MARKET")
       .setDescription(
@@ -68,88 +74,159 @@ client.on("messageCreate", async (message) => {
         }
       ]);
 
+    const row = new ActionRowBuilder().addComponents(menu);
+
     return message.channel.send({
       embeds: [embed],
-      components: [
-        new ActionRowBuilder().addComponents(menu)
+      components: [row]
+    });
+  }
+});
+
+// =========================
+// TWORZENIE TICKETU
+// =========================
+
+client.on("interactionCreate", async (interaction) => {
+
+  // =========================
+  // KATEGORIA TICKETU
+  // =========================
+
+  if (interaction.isStringSelectMenu()) {
+
+    if (interaction.customId !== "ticket_category") return;
+
+    const names = {
+      zakup: "🛒・zakup-titan-holo",
+      nagroda: "🎁・nagroda",
+      pomoc: "🛠️・pomoc",
+      wspolpraca: "🤝・wspolpraca"
+    };
+
+    const existing = interaction.guild.channels.cache.find(
+      channel => channel.topic === `ticket-${interaction.user.id}`
+    );
+
+    if (existing) {
+      return interaction.reply({
+        content: `❌ Masz już otwarty ticket: ${existing}`,
+        ephemeral: true
+      });
+    }
+
+    const channel = await interaction.guild.channels.create({
+      name: names[interaction.values[0]],
+      type: ChannelType.GuildText,
+      topic: `ticket-${interaction.user.id}`,
+      permissionOverwrites: [
+        {
+          id: interaction.guild.id,
+          deny: [
+            PermissionsBitField.Flags.ViewChannel
+          ]
+        },
+        {
+          id: interaction.user.id,
+          allow: [
+            PermissionsBitField.Flags.ViewChannel,
+            PermissionsBitField.Flags.SendMessages,
+            PermissionsBitField.Flags.ReadMessageHistory
+          ]
+        }
       ]
     });
-  }
-});
 
-// Tworzenie ticketu
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isStringSelectMenu()) return;
-  if (interaction.customId !== "ticket_category") return;
+    let description;
 
-  const names = {
-    zakup: "🛒・zakup-titan-holo",
-    nagroda: "🎁・nagroda",
-    pomoc: "🛠️・pomoc",
-    wspolpraca: "🤝・wspolpraca"
-  };
+    if (interaction.values[0] === "zakup") {
 
-  const existing = interaction.guild.channels.cache.find(
-    channel => channel.topic === `ticket-${interaction.user.id}`
-  );
+      description =
+        "# <:TitanHolo:1536522515092873319> ZAKUP TITAN HOLO\n\n" +
 
-  if (existing) {
-    return interaction.reply({
-      content: `❌ Masz już otwarty ticket: ${existing}`,
+        "## 💳 METODY PŁATNOŚCI\n\n" +
+
+        "# <:Blik:1536522618348380331> BLIK\n" +
+        "### 0% PROWIZJI\n\n" +
+
+        "# <:Psc:1536522696542781450> PSC\n" +
+        "### 15% PROWIZJI\n\n" +
+
+        "# <:Mypsc:1536522757595078727> MYPSC\n" +
+        "### 25% PROWIZJI";
+
+    } else if (interaction.values[0] === "nagroda") {
+
+      description =
+        "# 🎁 NAGRODA\n\n" +
+        "Opisz tutaj, jaką nagrodę chcesz odebrać.";
+
+    } else if (interaction.values[0] === "pomoc") {
+
+      description =
+        "# 🛠️ POMOC\n\n" +
+        "Opisz tutaj, w czym potrzebujesz pomocy.";
+
+    } else {
+
+      description =
+        "# 🤝 WSPÓŁPRACA\n\n" +
+        "Opisz tutaj swoją propozycję współpracy.";
+    }
+
+    const ticketEmbed = new EmbedBuilder()
+      .setTitle("🎫 TITAN MARKET")
+      .setDescription(description);
+
+    const closeButton = new ButtonBuilder()
+      .setCustomId("close_ticket")
+      .setLabel("Zamknij ticket")
+      .setEmoji("🔒")
+      .setStyle(ButtonStyle.Danger);
+
+    const buttonRow = new ActionRowBuilder()
+      .addComponents(closeButton);
+
+    await channel.send({
+      content: `${interaction.user}`,
+      embeds: [ticketEmbed],
+      components: [buttonRow]
+    });
+
+    await interaction.reply({
+      content: `✅ Ticket utworzony: ${channel}`,
       ephemeral: true
     });
+
+    return;
   }
 
-  const channel = await interaction.guild.channels.create({
-    name: names[interaction.values[0]],
-    type: ChannelType.GuildText,
-    topic: `ticket-${interaction.user.id}`,
-    permissionOverwrites: [
-      {
-        id: interaction.guild.id,
-        deny: [PermissionsBitField.Flags.ViewChannel]
-      },
-      {
-        id: interaction.user.id,
-        allow: [
-          PermissionsBitField.Flags.ViewChannel,
-          PermissionsBitField.Flags.SendMessages,
-          PermissionsBitField.Flags.ReadMessageHistory
-        ]
+  // =========================
+  // ZAMYKANIE TICKETU
+  // =========================
+
+  if (interaction.isButton()) {
+
+    if (interaction.customId !== "close_ticket") return;
+
+    await interaction.reply({
+      content: "🔒 Ticket zostanie zamknięty za 3 sekundy..."
+    });
+
+    setTimeout(async () => {
+
+      try {
+        await interaction.channel.delete();
+      } catch (error) {
+        console.log("Nie udało się usunąć ticketu:", error);
       }
-    ]
-  });
 
-  let description;
-
-  if (interaction.values[0] === "zakup") {
-    description =
-      "# <:TitanHolo:1536522515092873319> ZAKUP TITAN HOLO\n\n" +
-      "# <:Blik:1536522618348380331> BLIK — 0% PROWIZJI\n\n" +
-      "# <:Psc:1536522696542781450> PSC — 15% PROWIZJI\n\n" +
-      "# <:Mypsc:1536522757595078727> MYPSC — 25% PROWIZJI";
-  } else if (interaction.values[0] === "nagroda") {
-    description = "# 🎁 NAGRODA";
-  } else if (interaction.values[0] === "pomoc") {
-    description = "# 🛠️ POMOC";
-  } else {
-    description = "# 🤝 WSPÓŁPRACA";
+    }, 3000);
   }
-
-  const ticketEmbed = new EmbedBuilder()
-    .setTitle("TITAN MARKET")
-    .setDescription(description);
-
-  await channel.send({
-    content: `${interaction.user}`,
-    embeds: [ticketEmbed]
-  });
-
-  await interaction.reply({
-    content: `✅ Ticket utworzony: ${channel}`,
-    ephemeral: true
-  });
 });
 
+// =========================
 // URUCHOMIENIE BOTA
+// =========================
+
 client.login(process.env.TOKEN);
